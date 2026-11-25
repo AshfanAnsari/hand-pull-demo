@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>grabbit. — Dinner, handled. (Hand Pull Demo)</title>
+  <meta name="description" content="A fictional food-delivery landing page demo for grabbit., featuring a GSAP-driven hand-pull scroll entrance.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FAF6EF;
+      --ink: #201A15;
+      --ink-muted: #5C5248;
+      --accent: #E4572E;
+      --accent-hover: #CC4720;
+      --leaf: #3E8914;
+      --leaf-bg: #EEF5E9;
+      --card: #FFFFFF;
+      --border: #EAE2D3;
+      --border-strong: #D6CBB8;
+      --tile-amber: #B86B21;
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --max-w: 1120px;
+      --gutter: 24px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scrollbar-gutter: stable;
+      background-color: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    a:focus-visible,
+    button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: var(--max-w);
+      margin-inline: auto;
+      padding-inline: var(--gutter);
+    }
+
+    /* Hand overlay — fixed, top-anchored, pointer-events: none */
+    #hand {
+      position: fixed;
+      top: 0;
+      left: 63%;
+      width: clamp(120px, 36vw, 210px);
+      z-index: 50;
+      pointer-events: none;
+      transform: translate3d(-50%, -110%, 0);
+      transform-origin: 50% 0%;
+      opacity: 0;
+      visibility: hidden;
+      user-select: none;
+    }
+
+    #hand img {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 620 / 1085;
+    }
+
+    #hand-grip {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: auto;
+      opacity: 0;
+    }
+
+    /* Top bar (scrolls away with page) */
+    .topbar {
+      padding-block: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .wordmark {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .wordmark span {
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink-muted);
+    }
+
+    .nav-links a {
+      transition: color 0.18s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--ink);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1;
+      padding: 14px 24px;
+      border: 1px solid transparent;
+      transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-sm {
+      padding: 11px 18px;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background-color: var(--accent);
+      color: #FFFFFF;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      border-color: var(--border-strong);
+      color: var(--ink);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--ink);
+      background-color: rgba(32, 26, 21, 0.04);
+    }
+
+    /* Hero (~92vh including topbar alignment) */
+    .hero {
+      min-height: calc(92vh - 81px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding-top: 56px;
+      padding-bottom: 48px;
+      gap: 48px;
+    }
+
+    .hero-copy {
+      max-width: 600px;
+    }
+
+    .eyebrow {
+      margin: 0 0 16px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .hero h1 {
+      margin: 0 0 16px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-sub {
+      margin: 0 0 32px;
+      font-size: 18px;
+      line-height: 1.5;
+      color: var(--ink-muted);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Hero 3 dish cards */
+    .hero-dishes-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-kicker {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+
+    .hero-dishes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .dish-mini {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      transition: border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .dish-mini:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+    }
+
+    .dish-tile {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 20px;
+      color: #FFFFFF;
+      flex-shrink: 0;
+    }
+
+    .tile-tomato { background-color: var(--accent); }
+    .tile-leaf { background-color: var(--leaf); }
+    .tile-amber { background-color: var(--tile-amber); }
+
+    .dish-mini-body {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .dish-mini-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .dish-mini-name {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .dish-price {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    .dish-mini-note {
+      margin: 0;
+      font-size: 13px;
+      color: var(--ink-muted);
+      line-height: 1.4;
+    }
+
+    /* Shared section spacing (8px scale) */
+    .section {
+      padding-block: 88px;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .section-head h2 {
+      margin: 8px 0 0;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+      line-height: 1.12;
+      letter-spacing: -0.025em;
+    }
+
+    /* How it works — editorial 3-column numbered steps */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 32px;
+    }
+
+    .step {
+      padding-top: 24px;
+      border-top: 2px solid var(--ink);
+    }
+
+    .step-num {
+      display: block;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 32px;
+      line-height: 1;
+      color: var(--accent);
+      margin-bottom: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .step h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .step p {
+      margin: 0;
+      font-size: 15px;
+      color: var(--ink-muted);
+      line-height: 1.55;
+    }
+
+    /* Tonight's menu — 6 dish cards + working sample tray */
+    .tray-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 8px 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .tray-count {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tray-status {
+      color: var(--leaf);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .tray-btn {
+      background-color: var(--ink);
+      color: #FFFFFF;
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background-color 0.18s ease;
+    }
+
+    .tray-btn:hover:not(:disabled) {
+      background-color: var(--accent);
+    }
+
+    .tray-btn:disabled {
+      opacity: 0.38;
+      cursor: default;
+    }
+
+    .tray-clear {
+      background: none;
+      border: 0;
+      color: var(--ink-muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 6px;
+    }
+
+    .tray-clear:hover {
+      color: var(--ink);
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .menu-card {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: border-color 0.18s ease;
+    }
+
+    .menu-card.is-selected {
+      border-color: var(--leaf);
+    }
+
+    .menu-card-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .menu-card-title {
+      margin: 0 0 6px;
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.3;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .diet-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background-color: var(--leaf-bg);
+      color: var(--leaf);
+    }
+
+    .menu-card-note {
+      margin: 0;
+      font-size: 14px;
+      color: var(--ink-muted);
+      line-height: 1.45;
+    }
+
+    .menu-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .menu-price {
+      font-size: 17px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .add-btn {
+      background-color: var(--bg);
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    }
+
+    .add-btn:hover {
+      border-color: var(--ink);
+    }
+
+    .menu-card.is-selected .add-btn {
+      background-color: var(--leaf);
+      border-color: var(--leaf);
+      color: #FFFFFF;
+    }
+
+    .tray-feedback {
+      margin: 16px 0 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--leaf);
+      min-height: 22px;
+    }
+
+    /* About strip */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    .about-copy p {
+      margin: 0 0 16px;
+      font-size: 16px;
+      color: var(--ink-muted);
+      line-height: 1.65;
+    }
+
+    .about-copy p:last-child {
+      margin-bottom: 0;
+    }
+
+    .about-specs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .spec-chip {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding-block: 40px;
+    }
+
+    .footer-inner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 14px;
+      color: var(--ink-muted);
+    }
+
+    .footer-pull-btn {
+      background: none;
+      border: 0;
+      padding: 4px 0;
+      font-weight: 700;
+      color: var(--ink);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      transition: color 0.18s ease;
+    }
+
+    .footer-pull-btn:hover {
+      color: var(--accent);
+    }
+
+    /* Fixed bottom-right replay pill */
+    #replay-pill {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 40;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--ink);
+      color: #FAF6EF;
+      border: 1px solid var(--ink);
+      border-radius: 999px;
+      padding: 11px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.18s ease, visibility 0.25s ease;
+    }
+
+    #replay-pill.is-visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    #replay-pill:hover {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    #replay-pill svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 900px) {
+      .hero-dishes {
+        grid-template-columns: 1fr;
+      }
+
+      .steps-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .about-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      #hand {
+        left: 50%;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        min-height: calc(88vh - 73px);
+        padding-top: 40px;
+        padding-bottom: 32px;
+        gap: 32px;
+      }
+
+      .section {
+        padding-block: 64px;
+      }
+
+      .tray-bar {
+        width: 100%;
+        justify-content: space-between;
+        border-radius: 14px;
+      }
+
+      #replay-pill {
+        right: 16px;
+        bottom: 16px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #hand,
+      #replay-pill,
+      .footer-pull-btn {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body id="top">
+  <!-- Fixed hand layer: pointer-events: none at all times -->
+  <div id="hand" aria-hidden="true">
+    <img id="hand-open" src="./assets/hand-open.png" alt="" width="620" height="1085" decoding="async">
+    <img id="hand-grip" src="./assets/hand-grip.png" alt="" width="620" height="1085" decoding="async">
+  </div>
+
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a href="#top" class="wordmark">grabbit<span>.</span></a>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="#menu">Menu</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#about">About</a>
+      </nav>
+      <a href="#menu" class="btn btn-primary btn-sm">Order now</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container" aria-labelledby="hero-heading">
+      <div class="hero-copy">
+        <p class="eyebrow">SAMPLE DEMO — FOOD DELIVERY</p>
+        <h1 id="hero-heading">Dinner, handled.</h1>
+        <p class="hero-sub">Six rotating plates from neighbourhood kitchens, packed hot on one quiet courier route.</p>
+        <div class="hero-actions">
+          <a href="#menu" class="btn btn-primary">See the menu</a>
+          <a href="#how-it-works" class="btn btn-outline">How it works</a>
+        </div>
+      </div>
+
+      <div class="hero-dishes-wrap">
+        <span class="section-kicker">Sample picks — illustrative menu</span>
+        <div class="hero-dishes">
+          <article class="dish-mini">
+            <div class="dish-tile tile-tomato" aria-hidden="true">C</div>
+            <div class="dish-mini-body">
+              <div class="dish-mini-top">
+                <h2 class="dish-mini-name">Charred Tomato Rigatoni</h2>
+                <span class="dish-price">$16</span>
+              </div>
+              <p class="dish-mini-note">Slow-roasted plum tomatoes, basil oil, pecorino</p>
+            </div>
+          </article>
+          <article class="dish-mini">
+            <div class="dish-tile tile-leaf" aria-hidden="true">S</div>
+            <div class="dish-mini-body">
+              <div class="dish-mini-top">
+                <h2 class="dish-mini-name">Sesame Ginger Rice Bowl</h2>
+                <span class="dish-price">$14</span>
+              </div>
+              <p class="dish-mini-note">Crispy tofu, pickled cucumber, warm jasmine rice</p>
+            </div>
+          </article>
+          <article class="dish-mini">
+            <div class="dish-tile tile-amber" aria-hidden="true">H</div>
+            <div class="dish-mini-body">
+              <div class="dish-mini-top">
+                <h2 class="dish-mini-name">Herb-Roast Chicken Plate</h2>
+                <span class="dish-price">$19</span>
+              </div>
+              <p class="dish-mini-note">Lemon thyme, blistered green beans, pan jus</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="section container" aria-labelledby="how-heading">
+      <div class="section-head">
+        <div>
+          <span class="section-kicker">How it works</span>
+          <h2 id="how-heading">Three steps from kitchen to table.</h2>
+        </div>
+      </div>
+      <div class="steps-grid">
+        <article class="step">
+          <span class="step-num">01</span>
+          <h3>Pick from tonight's six</h3>
+          <p>A tight six-dish menu keeps prep simple so every plate leaves the pass warm instead of waiting on a rack.</p>
+        </article>
+        <article class="step">
+          <span class="step-num">02</span>
+          <h3>Packed when you confirm</h3>
+          <p>Orders close in short dispatch windows and travel on a single direct route rather than stacked multi-stop loops.</p>
+        </article>
+        <article class="step">
+          <span class="step-num">03</span>
+          <h3>Left right where you ask</h3>
+          <p>Insulated paper bags, one arrival ping, and quiet doorstep handoff so dinner starts the moment you open the door.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="menu" class="section container" aria-labelledby="menu-heading">
+      <div class="section-head">
+        <div>
+          <span class="section-kicker">Illustrative sample dishes</span>
+          <h2 id="menu-heading">Tonight's menu</h2>
+        </div>
+        <div class="tray-bar" aria-live="polite">
+          <span class="tray-count" id="tray-summary">Sample tray: 0 dishes ($0)</span>
+          <button type="button" class="tray-clear" id="tray-clear" hidden>Clear</button>
+          <button type="button" class="tray-btn" id="tray-submit" disabled>Try order</button>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+        <article class="menu-card" data-name="Charred Tomato Rigatoni" data-price="16">
+          <div class="menu-card-info">
+            <h3 class="menu-card-title">
+              Charred Tomato Rigatoni
+              <span class="diet-tag">Veg</span>
+            </h3>
+            <p class="menu-card-note">Roasted plum tomatoes, garlic confit, basil oil, aged pecorino.</p>
+          </div>
+          <div class="menu-card-actions">
+            <span class="menu-price">$16</span>
+            <button type="button" class="add-btn" aria-pressed="false">+ Add</button>
+          </div>
+        </article>
+
+        <article class="menu-card" data-name="Sesame Ginger Rice Bowl" data-price="14">
+          <div class="menu-card-info">
+            <h3 class="menu-card-title">
+              Sesame Ginger Rice Bowl
+              <span class="diet-tag">Plant</span>
+            </h3>
+            <p class="menu-card-note">Crispy tofu, pickled cucumber, scallion oil, warm jasmine rice.</p>
+          </div>
+          <div class="menu-card-actions">
+            <span class="menu-price">$14</span>
+            <button type="button" class="add-btn" aria-pressed="false">+ Add</button>
+          </div>
+        </article>
+
+        <article class="menu-card" data-name="Herb-Roast Chicken Plate" data-price="19">
+          <div class="menu-card-info">
+            <h3 class="menu-card-title">Herb-Roast Chicken Plate</h3>
+            <p class="menu-card-note">Lemon-thyme roast, blistered green beans, warm pan jus.</p>
+          </div>
+          <div class="menu-card-actions">
+            <span class="menu-price">$19</span>
+            <button type="button" class="add-btn" aria-pressed="false">+ Add</button>
+          </div>
+        </article>
+
+        <article class="menu-card" data-name="Smoked Eggplant Flatbread" data-price="13">
+          <div class="menu-card-info">
+            <h3 class="menu-card-title">
+              Smoked Eggplant Flatbread
+              <span class="diet-tag">Veg</span>
+            </h3>
+            <p class="menu-card-note">Whipped tahini, pomegranate seeds, za'atar on blistered dough.</p>
+          </div>
+          <div class="menu-card-actions">
+            <span class="menu-price">$13</span>
+            <button type="button" class="add-btn" aria-pressed="false">+ Add</button>
+          </div>
+        </article>
+
+        <article class="menu-card" data-name="Miso Butter Salmon" data-price="21">
+          <div class="menu-card-info">
+            <h3 class="menu-card-title">Miso Butter Salmon</h3>
+            <p class="menu-card-note">Seared fillet, steamed greens, yuzu kosho, short-grain rice.</p>
+          </div>
+          <div class="menu-card-actions">
+            <span class="menu-price">$21</span>
+            <button type="button" class="add-btn" aria-pressed="false">+ Add</button>
+          </div>
+        </article>
+
+        <article class="menu-card" data-name="Warm Cardamom Rice Pudding" data-price="8">
+          <div class="menu-card-info">
+            <h3 class="menu-card-title">
+              Warm Cardamom Rice Pudding
+              <span class="diet-tag">Veg</span>
+            </h3>
+            <p class="menu-card-note">Toasted pistachios, orange blossom water, raw cane sugar.</p>
+          </div>
+          <div class="menu-card-actions">
+            <span class="menu-price">$8</span>
+            <button type="button" class="add-btn" aria-pressed="false">+ Add</button>
+          </div>
+        </article>
+      </div>
+
+      <p class="tray-feedback" id="tray-feedback" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="about" class="section container" aria-labelledby="about-heading">
+      <div class="about-grid">
+        <div class="section-head" style="margin-bottom: 0;">
+          <div>
+            <span class="section-kicker">About this demo</span>
+            <h2 id="about-heading">Why a hand pulls the page.</h2>
+          </div>
+        </div>
+        <div class="about-copy">
+          <p><strong>grabbit.</strong> is a fictional sample kitchen created to test a tactile entrance motion: a single arm enters from the top edge of the viewport, grips the hero, and pulls the page up into scroll before letting go.</p>
+          <p>Every dish and price on this page is illustrative sample data. The scroll position and the hand's vertical offset share one GSAP progress driver so the fingers stay locked to the exact spot they grabbed until they clear the top edge.</p>
+          <div class="about-specs">
+            <span class="spec-chip">Single GSAP progress driver</span>
+            <span class="spec-chip">Transform + opacity only</span>
+            <span class="spec-chip">Reduced-motion safe</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p style="margin: 0;">grabbit. — a demo page. The hand did the scrolling.</p>
+      <button type="button" class="footer-pull-btn" id="replay-footer">Pull again</button>
+    </div>
+  </footer>
+
+  <button type="button" id="replay-pill" aria-label="Pull again from top">
+    <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="80 104 32 104 32 56"></polyline>
+      <path d="M67.8 192.2a88 88 0 1 0-1.6-126.4L32 104"></path>
+    </svg>
+    <span>Pull again</span>
+  </button>
+
+  <script src="./vendor/gsap.min.js"></script>
+  <script src="./vendor/ScrollToPlugin.min.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      // Interactive sample tray & smooth anchor links work regardless of animation state
+      const cards = Array.from(document.querySelectorAll('.menu-card'));
+      const traySummary = document.getElementById('tray-summary');
+      const trayClear = document.getElementById('tray-clear');
+      const traySubmit = document.getElementById('tray-submit');
+      const trayFeedback = document.getElementById('tray-feedback');
+      const selected = new Set();
+
+      function updateTray() {
+        let total = 0;
+        selected.forEach((card) => {
+          total += Number(card.dataset.price || 0);
+        });
+        const count = selected.size;
+        traySummary.textContent = `Sample tray: ${count} ${count === 1 ? 'dish' : 'dishes'} ($${total})`;
+        trayClear.hidden = count === 0;
+        traySubmit.disabled = count === 0;
+      }
+
+      cards.forEach((card) => {
+        const btn = card.querySelector('.add-btn');
+        btn.addEventListener('click', () => {
+          const isSelected = selected.has(card);
+          if (isSelected) {
+            selected.delete(card);
+            card.classList.remove('is-selected');
+            btn.textContent = '+ Add';
+            btn.setAttribute('aria-pressed', 'false');
+          } else {
+            selected.add(card);
+            card.classList.add('is-selected');
+            btn.textContent = 'Added';
+            btn.setAttribute('aria-pressed', 'true');
+          }
+          trayFeedback.textContent = '';
+          updateTray();
+        });
+      });
+
+      trayClear.addEventListener('click', () => {
+        selected.forEach((card) => {
+          card.classList.remove('is-selected');
+          const btn = card.querySelector('.add-btn');
+          btn.textContent = '+ Add';
+          btn.setAttribute('aria-pressed', 'false');
+        });
+        selected.clear();
+        trayFeedback.textContent = '';
+        updateTray();
+      });
+
+      traySubmit.addEventListener('click', () => {
+        if (selected.size === 0) return;
+        const names = Array.from(selected).map((c) => c.dataset.name).join(', ');
+        trayFeedback.textContent = `Demo tray noted (${names}) — illustrative sample only, no order placed.`;
+      });
+
+      // Reduced motion & GSAP availability guards
+      const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const hand = document.getElementById('hand');
+      const openImg = document.getElementById('hand-open');
+      const gripImg = document.getElementById('hand-grip');
+      const replayPill = document.getElementById('replay-pill');
+      const replayFooter = document.getElementById('replay-footer');
+
+      const hasGsap = typeof window.gsap !== 'undefined' && typeof window.ScrollToPlugin !== 'undefined';
+
+      function disableHandExperience() {
+        document.body.style.overflow = '';
+        if (hand) hand.style.display = 'none';
+        if (replayPill) replayPill.style.display = 'none';
+        if (replayFooter) replayFooter.style.display = 'none';
+      }
+
+      if (!hasGsap || reduceMotionQuery.matches) {
+        disableHandExperience();
+        return;
+      }
+
+      gsap.registerPlugin(ScrollToPlugin);
+
+      // Anchor smooth-scroll via GSAP ScrollToPlugin
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener('click', (e) => {
+          const targetId = anchor.getAttribute('href');
+          if (!targetId || targetId === '#') return;
+          const target = document.querySelector(targetId);
+          if (!target) return;
+          e.preventDefault();
+          gsap.to(window, {
+            scrollTo: { y: target, autoKill: true },
+            duration: 0.65,
+            ease: 'power2.inOut'
+          });
+        });
+      });
+
+      let activeTimeline = null;
+      let isAnimating = false;
+      let hasPlayedOnce = false;
+
+      // Actual fingertip offset inside 620x1085 hand-open.png (1074 / 1085)
+      const FINGERTIP_RATIO = 1074 / 1085;
+
+      function waitForImage(img) {
+        if (img.complete && img.naturalWidth > 0) {
+          return img.decode ? img.decode().catch(() => {}) : Promise.resolve();
+        }
+        return new Promise((resolve) => {
+          const done = () => resolve();
+          img.addEventListener('load', done, { once: true });
+          img.addEventListener('error', done, { once: true });
+        });
+      }
+
+      function setOpenHand() {
+        openImg.style.opacity = '1';
+        gripImg.style.opacity = '0';
+      }
+
+      function setGripHand() {
+        openImg.style.opacity = '0';
+        gripImg.style.opacity = '1';
+      }
+
+      function lockScrollInput(e) {
+        e.preventDefault();
+      }
+
+      function enablePullLock() {
+        document.body.style.overflow = 'hidden';
+        window.addEventListener('wheel', lockScrollInput, { passive: false });
+        window.addEventListener('touchmove', lockScrollInput, { passive: false });
+      }
+
+      function disablePullLock() {
+        document.body.style.overflow = '';
+        window.removeEventListener('wheel', lockScrollInput);
+        window.removeEventListener('touchmove', lockScrollInput);
+      }
+
+      function showReplayPill() {
+        if (!hasPlayedOnce) {
+          hasPlayedOnce = true;
+        }
+        replayPill.classList.add('is-visible');
+      }
+
+      function runPullSequence() {
+        if (reduceMotionQuery.matches) {
+          disableHandExperience();
+          return;
+        }
+        if (isAnimating) return;
+        isAnimating = true;
+
+        const vh = window.innerHeight;
+        const isPhone = window.innerWidth <= 640;
+        const handHeight = hand.offsetHeight || (hand.offsetWidth * (1085 / 620));
+
+        // Fingertip target ~24% vh desktop / ~26% vh phone; keep arm top edge at/above y=0
+        const tipTarget = vh * (isPhone ? 0.26 : 0.24);
+        const landY = Math.min(-12, tipTarget - handHeight * FINGERTIP_RATIO);
+        const dipY = Math.min(-2, landY + 10);
+
+        // Pull distance 0.92 * vh desktop / 0.88 * vh phone (bounded by available scroll)
+        const startScroll = window.scrollY;
+        const maxScroll = Math.max(0, document.documentElement.scrollHeight - vh);
+        const desiredPull = vh * (isPhone ? 0.88 : 0.92);
+        const pullDist = Math.max(0, Math.min(desiredPull, maxScroll - startScroll));
+        const overshoot = Math.min(14, Math.max(0, maxScroll - (startScroll + pullDist)));
+
+        // Prepare hand offscreen above top edge
+        hand.style.willChange = 'transform';
+        setOpenHand();
+        gsap.set(hand, {
+          xPercent: -50,
+          y: -handHeight,
+          scale: 1,
+          rotation: 1.6,
+          transformOrigin: '50% 0%',
+          autoAlpha: 1
+        });
+
+        const pullState = { travel: 0 };
+        const syncScrollAndHand = () => {
+          window.scrollTo(0, startScroll + pullState.travel);
+          gsap.set(hand, { y: dipY - pullState.travel });
+        };
+
+        const releaseY = Math.min(dipY - pullDist - 24, -handHeight - 16);
+
+        activeTimeline = gsap.timeline({
+          onComplete: () => {
+            disablePullLock();
+            hand.style.willChange = 'auto';
+            gsap.set(hand, { autoAlpha: 0 });
+            isAnimating = false;
+            showReplayPill();
+          }
+        });
+
+        // 1. Descend (0.9s, power2.out)
+        activeTimeline.to(hand, {
+          y: landY,
+          rotation: 0,
+          duration: 0.9,
+          ease: 'power2.out'
+        });
+
+        // 2. Anticipation (0.12s, dip 10px further down)
+        activeTimeline.to(hand, {
+          y: dipY,
+          duration: 0.12,
+          ease: 'power1.in'
+        });
+
+        // 3. Grab (instant swap open -> grip + 0.1s scale to 0.98)
+        activeTimeline.call(setGripHand);
+        activeTimeline.to(hand, {
+          scale: 0.98,
+          duration: 0.1,
+          ease: 'power2.out'
+        });
+
+        // Brief tactile beat before pull begins
+        activeTimeline.to({}, { duration: 0.08 });
+
+        // 4. Pull (1.15s main travel power3.inOut + 0.25s overshoot settle)
+        activeTimeline.call(enablePullLock);
+        activeTimeline.to(pullState, {
+          travel: pullDist + overshoot,
+          duration: 1.15,
+          ease: 'power3.inOut',
+          onUpdate: syncScrollAndHand
+        });
+        activeTimeline.to(pullState, {
+          travel: pullDist,
+          duration: 0.25,
+          ease: 'power2.out',
+          onUpdate: syncScrollAndHand
+        });
+        activeTimeline.call(disablePullLock);
+
+        // 5. Release: swap grip -> open, scale back to 1, retract fully up (0.45s, power2.in)
+        activeTimeline.call(setOpenHand);
+        activeTimeline.to(hand, {
+          y: releaseY,
+          scale: 1,
+          duration: 0.45,
+          ease: 'power2.in'
+        });
+      }
+
+      function handleReplay() {
+        if (isAnimating || reduceMotionQuery.matches) return;
+        isAnimating = true;
+        replayPill.classList.remove('is-visible');
+
+        const scrollDuration = window.scrollY > 4 ? 0.6 : 0.05;
+        gsap.to(window, {
+          scrollTo: { y: 0, autoKill: false },
+          duration: scrollDuration,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            isAnimating = false;
+            runPullSequence();
+          }
+        });
+      }
+
+      replayPill.addEventListener('click', handleReplay);
+      replayFooter.addEventListener('click', handleReplay);
+
+      // Respond if user toggles reduced motion dynamically
+      if (reduceMotionQuery.addEventListener) {
+        reduceMotionQuery.addEventListener('change', (e) => {
+          if (e.matches) {
+            if (activeTimeline) activeTimeline.kill();
+            isAnimating = false;
+            disableHandExperience();
+          }
+        });
+      }
+
+      // Start 600ms after load AND after both hand images are loaded
+      const windowLoaded = new Promise((resolve) => {
+        if (document.readyState === 'complete') {
+          resolve();
+        } else {
+          window.addEventListener('load', resolve, { once: true });
+        }
+      });
+
+      Promise.all([
+        windowLoaded,
+        waitForImage(openImg),
+        waitForImage(gripImg)
+      ]).then(() => {
+        if (reduceMotionQuery.matches) {
+          disableHandExperience();
+          return;
+        }
+        if (openImg.naturalWidth === 0 || gripImg.naturalWidth === 0) {
+          disableHandExperience();
+          return;
+        }
+        gsap.delayedCall(0.6, runPullSequence);
+      });
+    })();
+  </script>
+</body>
+</html>
