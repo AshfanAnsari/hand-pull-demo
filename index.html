@@ -103,6 +103,12 @@
       opacity: 0;
     }
 
+    /* Sheet & hero cloth-fold targets (no transforms or will-change at rest) */
+    #sheet {
+      transform-origin: 50% 0;
+      overflow-x: clip;
+    }
+
     /* Top bar (scrolls away with page) */
     .topbar {
       padding-block: 20px;
@@ -192,6 +198,8 @@
 
     /* Hero (~92vh including topbar alignment) */
     .hero {
+      position: relative;
+      transform-origin: 50% 0;
       min-height: calc(92vh - 81px);
       display: flex;
       flex-direction: column;
@@ -199,6 +207,19 @@
       padding-top: 56px;
       padding-bottom: 48px;
       gap: 48px;
+    }
+
+    .hero-crease {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 100vw;
+      transform: translateX(-50%);
+      height: 180px;
+      background: linear-gradient(to bottom, rgba(32, 26, 21, 0.16), rgba(32, 26, 21, 0));
+      opacity: 0;
+      pointer-events: none;
+      z-index: 2;
     }
 
     .hero-copy {
@@ -717,6 +738,7 @@
     <img id="hand-grip" src="./assets/hand-grip.png" alt="" width="620" height="1085" decoding="async">
   </div>
 
+  <div id="sheet">
   <header class="topbar">
     <div class="container topbar-inner">
       <a href="#top" class="wordmark">grabbit<span>.</span></a>
@@ -731,6 +753,7 @@
 
   <main>
     <section class="hero container" aria-labelledby="hero-heading">
+      <div class="hero-crease" aria-hidden="true"></div>
       <div class="hero-copy">
         <p class="eyebrow">SAMPLE DEMO — FOOD DELIVERY</p>
         <h1 id="hero-heading">Dinner, handled.</h1>
@@ -927,6 +950,7 @@
       <button type="button" class="footer-pull-btn" id="replay-footer">Pull again</button>
     </div>
   </footer>
+  </div>
 
   <button type="button" id="replay-pill" aria-label="Pull again from top">
     <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1004,13 +1028,32 @@
       const hand = document.getElementById('hand');
       const openImg = document.getElementById('hand-open');
       const gripImg = document.getElementById('hand-grip');
+      const sheet = document.getElementById('sheet');
+      const hero = document.querySelector('.hero');
+      const heroCrease = document.querySelector('.hero-crease');
       const replayPill = document.getElementById('replay-pill');
       const replayFooter = document.getElementById('replay-footer');
 
       const hasGsap = typeof window.gsap !== 'undefined' && typeof window.ScrollToPlugin !== 'undefined';
 
+      function resetSheetFold() {
+        if (sheet) {
+          sheet.style.transform = '';
+          sheet.style.willChange = '';
+        }
+        if (hero) {
+          hero.style.transform = '';
+          hero.style.willChange = '';
+        }
+        if (heroCrease) {
+          heroCrease.style.opacity = '';
+          heroCrease.style.willChange = '';
+        }
+      }
+
       function disableHandExperience() {
         document.body.style.overflow = '';
+        resetSheetFold();
         if (hand) hand.style.display = 'none';
         if (replayPill) replayPill.style.display = 'none';
         if (replayFooter) replayFooter.style.display = 'none';
@@ -1126,10 +1169,40 @@
           autoAlpha: 1
         });
 
-        const pullState = { travel: 0 };
+        const pullState = { travel: 0, grabPulse: 0 };
+        const foldScale = isPhone ? 0.8 : 1;
+
+        const applyFold = () => {
+          const p = pullDist > 0 ? pullState.travel / pullDist : 0;
+          const f = Math.max(0, Math.min(1, Math.sin(p * Math.PI)));
+          const earlyBoost = p < 0.15 ? 1.25 : (p < 0.22 ? 1.25 - 0.25 * ((p - 0.15) / 0.07) : 1);
+          const grabFloor = p < 0.15 ? pullState.grabPulse * (1 - p / 0.15) : 0;
+          const creaseOpacity = Math.max(0, Math.min(1, Math.max(f * earlyBoost, grabFloor)));
+
+          if (f > 0) {
+            const sheetTilt = (-5 * foldScale * f).toFixed(3);
+            const sheetStretch = (1 + 0.03 * f).toFixed(5);
+            const heroFold = (10 * foldScale * f).toFixed(3);
+            if (sheet) {
+              sheet.style.transform = `perspective(1200px) rotateX(${sheetTilt}deg) scaleY(${sheetStretch})`;
+            }
+            if (hero) {
+              hero.style.transform = `perspective(900px) rotateX(${heroFold}deg)`;
+            }
+          } else {
+            if (sheet) sheet.style.transform = '';
+            if (hero) hero.style.transform = '';
+          }
+
+          if (heroCrease) {
+            heroCrease.style.opacity = creaseOpacity.toFixed(4);
+          }
+        };
+
         const syncScrollAndHand = () => {
           window.scrollTo(0, startScroll + pullState.travel);
           gsap.set(hand, { y: dipY - pullState.travel });
+          applyFold();
         };
 
         const releaseY = Math.min(dipY - pullDist - 24, -handHeight - 16);
@@ -1137,6 +1210,7 @@
         activeTimeline = gsap.timeline({
           onComplete: () => {
             disablePullLock();
+            resetSheetFold();
             hand.style.willChange = 'auto';
             gsap.set(hand, { autoAlpha: 0 });
             isAnimating = false;
@@ -1159,13 +1233,24 @@
           ease: 'power1.in'
         });
 
-        // 3. Grab (instant swap open -> grip + 0.1s scale to 0.98)
-        activeTimeline.call(setGripHand);
+        // 3. Grab (instant swap open -> grip + 0.1s scale to 0.98 + brief crease pulse)
+        activeTimeline.call(() => {
+          setGripHand();
+          if (sheet) sheet.style.willChange = 'transform';
+          if (hero) hero.style.willChange = 'transform';
+          if (heroCrease) heroCrease.style.willChange = 'opacity';
+        });
         activeTimeline.to(hand, {
           scale: 0.98,
           duration: 0.1,
           ease: 'power2.out'
         });
+        activeTimeline.to(pullState, {
+          grabPulse: 0.28,
+          duration: 0.1,
+          ease: 'power2.out',
+          onUpdate: applyFold
+        }, '<');
 
         // Brief tactile beat before pull begins
         activeTimeline.to({}, { duration: 0.08 });
@@ -1184,7 +1269,10 @@
           ease: 'power2.out',
           onUpdate: syncScrollAndHand
         });
-        activeTimeline.call(disablePullLock);
+        activeTimeline.call(() => {
+          disablePullLock();
+          resetSheetFold();
+        });
 
         // 5. Release: swap grip -> open, scale back to 1, retract fully up (0.45s, power2.in)
         activeTimeline.call(setOpenHand);
